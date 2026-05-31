@@ -44,18 +44,17 @@ import net.minecraftforge.gradle.ArchiveTaskHelper;
 import net.minecraftforge.gradle.util.ReflectionUtil;
 import org.gradle.api.Action;
 import org.gradle.api.DefaultTask;
+import org.gradle.api.ExtensionAware;
 import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.XmlProvider;
-import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.ExternalModuleDependency;
 import org.gradle.api.artifacts.ModuleVersionIdentifier;
 import org.gradle.api.artifacts.ResolvedArtifact;
 import org.gradle.api.artifacts.component.ComponentIdentifier;
-import org.gradle.api.artifacts.maven.Conf2ScopeMappingContainer;
 import org.gradle.api.artifacts.result.ArtifactResolutionResult;
 import org.gradle.api.artifacts.result.ArtifactResult;
 import org.gradle.api.artifacts.result.ComponentArtifactsResult;
@@ -64,15 +63,15 @@ import org.gradle.api.artifacts.result.ResolvedArtifactResult;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.FileTreeElement;
 import org.gradle.api.file.SourceDirectorySet;
-import org.gradle.api.internal.plugins.DslObject;
+import org.gradle.api.JavaVersion;
 import org.gradle.api.plugins.JavaPlugin;
-import org.gradle.api.plugins.JavaPluginConvention;
-import org.gradle.api.plugins.MavenPluginConvention;
+import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.GroovySourceSet;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.ScalaSourceSet;
 import org.gradle.api.tasks.SourceSet;
+import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.bundling.Jar;
 import org.gradle.api.tasks.compile.AbstractCompile;
 import org.gradle.api.tasks.compile.GroovyCompile;
@@ -295,8 +294,8 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
         task.setMethodCsv(delayedFile(CSV_METHOD));
 
         reobf.setMappingType(ReobfMappingType.NOTCH);
-        JavaPluginConvention java = (JavaPluginConvention) project.getConvention().getPlugins().get("java");
-        reobf.setClasspath(java.getSourceSets().getByName("main").getCompileClasspath());
+        SourceSetContainer sourceSets = project.getExtensions().getByType(JavaPluginExtension.class).getSourceSets();
+        reobf.setClasspath(sourceSets.getByName("main").getCompileClasspath());
     }
 
     @SuppressWarnings("unchecked")
@@ -497,11 +496,12 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
     protected void configureCompilation()
     {
         // get convention
-        JavaPluginConvention javaConv = (JavaPluginConvention) project.getConvention().getPlugins().get("java");
+        JavaPluginExtension javaExt = project.getExtensions().getByType(JavaPluginExtension.class);
+        SourceSetContainer sourceSets = javaExt.getSourceSets();
 
-        SourceSet main = javaConv.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
-        SourceSet test = javaConv.getSourceSets().getByName(SourceSet.TEST_SOURCE_SET_NAME);
-        SourceSet api = javaConv.getSourceSets().create("api");
+        SourceSet main = sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME);
+        SourceSet test = sourceSets.getByName(SourceSet.TEST_SOURCE_SET_NAME);
+        SourceSet api = sourceSets.create("api");
 
         api.setCompileClasspath(api.getCompileClasspath()
                 .plus(project.getConfigurations().getByName(CONFIG_MC))
@@ -539,8 +539,8 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
         project.getDependencies().add(JavaPlugin.IMPLEMENTATION_CONFIGURATION_NAME, project.fileTree("libs"));
 
         // set the compile target
-        javaConv.setSourceCompatibility("1.8");
-        javaConv.setTargetCompatibility("1.8");
+        javaExt.setSourceCompatibility(JavaVersion.VERSION_1_8);
+        javaExt.setTargetCompatibility(JavaVersion.VERSION_1_8);
     }
 
     /**
@@ -548,7 +548,7 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
      */
     protected void createSourceCopyTasks()
     {
-        JavaPluginConvention javaConv = (JavaPluginConvention) project.getConvention().getPlugins().get("java");
+        SourceSetContainer sourceSets = project.getExtensions().getByType(JavaPluginExtension.class).getSourceSets();
 
         Action<SourceSet> action = new Action<SourceSet>() {
             @Override
@@ -578,7 +578,7 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
                 // scala
                 if (project.getPlugins().hasPlugin("scala"))
                 {
-                    ScalaSourceSet langSet = (ScalaSourceSet) new DslObject(set).getConvention().getPlugins().get("scala");
+                    ScalaSourceSet langSet = (ScalaSourceSet) ((ExtensionAware) set).getExtensions().getByName("scala");
                     File dir = new File(dirRoot, "scala");
 
                     task = makeTask(taskPrefix+"Scala", TaskSourceCopy.class);
@@ -595,7 +595,7 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
                 // groovy
                 if (project.getPlugins().hasPlugin("groovy"))
                 {
-                    GroovySourceSet langSet = (GroovySourceSet) new DslObject(set).getConvention().getPlugins().get("groovy");
+                    GroovySourceSet langSet = (GroovySourceSet) ((ExtensionAware) set).getExtensions().getByName("groovy");
                     File dir = new File(dirRoot, "groovy");
 
                     task = makeTask(taskPrefix+"Groovy", TaskSourceCopy.class);
@@ -612,7 +612,7 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
                 // kotlin
                 if (project.getPlugins().hasPlugin("kotlin"))
                 {
-                    Object langSet = new DslObject(set).getConvention().getPlugins().get("kotlin");
+                    Object langSet = ((ExtensionAware) set).getExtensions().getByName("kotlin");
                     File dir = new File(dirRoot, "kotlin");
 
                     task = makeTask(taskPrefix+"Kotlin", TaskSourceCopy.class);
@@ -645,12 +645,12 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
         };
 
         // for existing sourceSets
-        for (SourceSet set : javaConv.getSourceSets())
+        for (SourceSet set : sourceSets)
         {
             action.execute(set);
         }
         // for user-defined ones
-        javaConv.getSourceSets().whenObjectAdded(action);
+        sourceSets.whenObjectAdded(action);
     }
 
     protected final void doDevTimeDeobf()
@@ -790,7 +790,7 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
 
     protected void configureRetromapping()
     {
-        JavaPluginConvention javaConv = (JavaPluginConvention) project.getConvention().getPlugins().get("java");
+        SourceSetContainer sourceSets = project.getExtensions().getByType(JavaPluginExtension.class).getSourceSets();
 
         Action<SourceSet> retromapCreator = new Action<SourceSet>() {
             @Override
@@ -852,19 +852,19 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
         };
 
         // for existing sourceSets
-        for (SourceSet set : javaConv.getSourceSets())
+        for (SourceSet set : sourceSets)
         {
             retromapCreator.execute(set);
         }
         // for user-defined ones
-        javaConv.getSourceSets().whenObjectAdded(retromapCreator);
+        sourceSets.whenObjectAdded(retromapCreator);
 
-        final SourceSet main = javaConv.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
+        final SourceSet main = sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME);
 
         // make retromapped sourcejar
         final Jar sourceJar = makeTask(TASK_SRC_JAR, Jar.class);
         final String retromappedSrc = getSourceSetFormatted(main, TMPL_RETROMAPED_RPL);
-        sourceJar.from(main.getOutput().getResourcesDir());
+        sourceJar.from(main.getResources());
         ArchiveTaskHelper.setClassifier(sourceJar, "sources");
         sourceJar.dependsOn(main.getCompileJavaTaskName(), main.getProcessResourcesTaskName(), getSourceSetFormatted(main, TMPL_TASK_RETROMAP_RPL));
 
@@ -887,12 +887,12 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
             {
                 if (project.getPlugins().hasPlugin("scala"))
                 {
-                    ScalaSourceSet langSet = (ScalaSourceSet) new DslObject(main).getConvention().getPlugins().get("scala");
+                    ScalaSourceSet langSet = (ScalaSourceSet) ((ExtensionAware) main).getExtensions().getByName("scala");
                     sourceJar.from(langSet.getAllScala());
                 }
                 if (project.getPlugins().hasPlugin("kotlin"))
                 {
-                    Object langSet = new DslObject(main).getConvention().getPlugins().get("kotlin");
+                    Object langSet = ((ExtensionAware) main).getExtensions().getByName("kotlin");
                     try {
                         sourceJar.from(langSet.getClass().getMethod("getKotlin").invoke(langSet));
                     } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
@@ -909,7 +909,7 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
         {
             JavaExec exec = makeTask("runClient", JavaExec.class);
             exec.getOutputs().dir(delayedFile(REPLACE_RUN_DIR));
-            exec.setMain(GRADLE_START_CLIENT);
+            exec.getMainClass().set(GRADLE_START_CLIENT);
             exec.doFirst(task -> ((JavaExec) task).workingDir(delayedFile(REPLACE_RUN_DIR)));
             exec.setStandardOutput(System.out);
             exec.setErrorOutput(System.err);
@@ -926,7 +926,7 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
         {
             JavaExec exec = makeTask("runServer", JavaExec.class);
             exec.getOutputs().dir(delayedFile(REPLACE_RUN_DIR));
-            exec.setMain(GRADLE_START_SERVER);
+            exec.getMainClass().set(GRADLE_START_SERVER);
             exec.doFirst(task -> ((JavaExec) task).workingDir(delayedFile(REPLACE_RUN_DIR)));
             exec.setStandardOutput(System.out);
             exec.setStandardInput(System.in);
@@ -958,15 +958,26 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
     {
         if (project.getPlugins().hasPlugin("maven"))
         {
-            MavenPluginConvention mavenConv = (MavenPluginConvention) project.getConvention().getPlugins().get("maven");
-            Conf2ScopeMappingContainer mappings = mavenConv.getConf2ScopeMappings();
-            ConfigurationContainer configs = project.getConfigurations();
-            final int priority = 500; // 500 is more than the compile config which is at 300
+            try
+            {
+                Object mavenConv = project.getConvention().getPlugins().get("maven");
+                Object mappings = mavenConv.getClass().getMethod("getConf2ScopeMappings").invoke(mavenConv);
+                ConfigurationContainer configs = project.getConfigurations();
+                final int priority = 500; // 500 is more than the compile config which is at 300
 
-            mappings.setSkipUnmappedConfs(true); // dont want unmapped confs bieng compile deps..
-            mappings.addMapping(priority, configs.getByName(CONFIG_PROVIDED), Conf2ScopeMappingContainer.PROVIDED);
-            mappings.addMapping(priority, configs.getByName(CONFIG_DEOBF_COMPILE), Conf2ScopeMappingContainer.COMPILE);
-            mappings.addMapping(priority, configs.getByName(CONFIG_DEOBF_PROVIDED), Conf2ScopeMappingContainer.PROVIDED);
+                mappings.getClass().getMethod("setSkipUnmappedConfs", boolean.class)
+                        .invoke(mappings, true); // dont want unmapped confs bieng compile deps..
+                mappings.getClass().getMethod("addMapping", int.class, org.gradle.api.artifacts.Configuration.class, String.class)
+                        .invoke(mappings, priority, configs.getByName(CONFIG_PROVIDED), "provided");
+                mappings.getClass().getMethod("addMapping", int.class, org.gradle.api.artifacts.Configuration.class, String.class)
+                        .invoke(mappings, priority, configs.getByName(CONFIG_DEOBF_COMPILE), "compile");
+                mappings.getClass().getMethod("addMapping", int.class, org.gradle.api.artifacts.Configuration.class, String.class)
+                        .invoke(mappings, priority, configs.getByName(CONFIG_DEOBF_PROVIDED), "provided");
+            }
+            catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e)
+            {
+                throw new RuntimeException(e);
+            }
         }
     }
 

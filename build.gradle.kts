@@ -5,7 +5,7 @@ import java.util.zip.*
 
 buildscript {
     dependencies {
-        classpath("com.github.hierynomus:license-gradle-plugin:0.16.1")
+        classpath("gradle.plugin.com.hierynomus.gradle.plugins:license-gradle-plugin:0.16.1")
         classpath("org.ow2.asm:asm:6.2.1")
         classpath("org.ow2.asm:asm-tree:6.2.1")
     }
@@ -274,41 +274,31 @@ open class  PatchJDTClasses : DefaultTask() {
 val patchJDT by tasks.creating(PatchJDTClasses::class) {
     target(PatchJDTClasses.COMPILATION_UNIT_RESOLVER)
     target(PatchJDTClasses.RANGE_EXTRACTOR)
-    shade.resolvedConfiguration.resolvedArtifacts.filter { dep ->
-        dep.name == "org.eclipse.jdt.core" || dep.name == "Srg2Source"
-    }.forEach { dep -> library(dep.file) }
+    doFirst {
+        shade.resolvedConfiguration.resolvedArtifacts.filter { dep ->
+            dep.name == "org.eclipse.jdt.core" || dep.name == "Srg2Source"
+        }.forEach { dep -> library(dep.file) }
+    }
     output = file("build/patchJDT/patch_jdt.jar")
 }
 
 val jar by tasks.getting(Jar::class) {
     dependsOn("patchJDT")
 
-    shade.forEach { dep ->
-        /* I can use this again to find where dupes come from, so.. gunna just keep it here.
-        logger.lifecycle(dep.toString())
-        project.zipTree(dep).visit {
-            element ->
-                def path = element.relativePath.toString()
-                if (path.contains("org/eclipse/core") && path.endsWith(".class"))
-                    println "  $element.relativePath"
-
-        }
-        */
-        from(project.zipTree(dep)) {
-            exclude("META-INF",
-                "META-INF/**",
-                ".api_description",
-                ".options",
-                "about.html",
-                "module-info.class",
-                "plugin.properties",
-                "plugin.xml",
-                "about_files/**")
-            duplicatesStrategy = DuplicatesStrategy.WARN
-        }
+    from({ shade.map { dep -> project.zipTree(dep) } }) {
+        exclude("META-INF",
+            "META-INF/**",
+            ".api_description",
+            ".options",
+            "about.html",
+            "module-info.class",
+            "plugin.properties",
+            "plugin.xml",
+            "about_files/**")
+        duplicatesStrategy = DuplicatesStrategy.WARN
     }
 
-    from(zipTree(patchJDT.output)) {
+    from({ zipTree(patchJDT.output) }) {
         duplicatesStrategy = DuplicatesStrategy.INCLUDE
     }
 
@@ -344,9 +334,9 @@ val test by tasks.getting(Test::class) {
         exclude("**/ExtensionMcpMappingTest*")
 }
 
-fun Project.license(configure: com.hierynomus.gradle.license.LicenseExtension.() -> Unit): Unit =
+fun Project.license(configure: nl.javadude.gradle.plugins.license.LicenseExtension.() -> Unit): Unit =
     (this as ExtensionAware).extensions.configure("license", configure)
-fun com.hierynomus.gradle.license.LicenseExtension.ext(configure: ExtraPropertiesExtension.()->Unit): Unit =
+fun nl.javadude.gradle.plugins.license.LicenseExtension.ext(configure: ExtraPropertiesExtension.()->Unit): Unit =
     (this as ExtensionAware).extensions.configure("ext", configure)
 
 license {

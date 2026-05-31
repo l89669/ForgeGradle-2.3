@@ -158,19 +158,35 @@ public class ArchiveTaskHelper {
 
     @SuppressWarnings("deprecation")
     private static class AbstractArchiveTaskHelperBackImplOld implements AbstractArchiveTaskHelperBack {
+        static Method getArchivePath;
+        static Method getDestinationDir;
+        static Method setDestinationDir;
+
+        static {
+            boolean isBefore = GradleVersionUtils.isBefore("5.1");
+            try {
+                getArchivePath = AbstractArchiveTask.class.getMethod("getArchivePath");
+                getDestinationDir = AbstractArchiveTask.class.getMethod("getDestinationDir");
+                setDestinationDir = AbstractArchiveTask.class.getMethod("setDestinationDir", File.class);
+            } catch (NoSuchMethodException e) {
+                if (isBefore)
+                    throw new RuntimeException(e);
+            }
+        }
+
         @Override
         public File getArchivePath(AbstractArchiveTask task) {
-            return task.getArchivePath();
+            return ArchiveTaskHelper.call(getArchivePath, task);
         }
 
         @Override
         public File getDestinationDir(AbstractArchiveTask task) {
-            return task.getDestinationDir();
+            return ArchiveTaskHelper.call(getDestinationDir, task);
         }
 
         @Override
         public void setDestinationDir(AbstractArchiveTask task, File destinationDir) {
-            task.setDestinationDir(destinationDir);
+            ArchiveTaskHelper.call(setDestinationDir, task, destinationDir);
         }
 
         @Override
