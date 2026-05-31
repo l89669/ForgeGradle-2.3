@@ -5,8 +5,7 @@ import java.util.zip.*
 
 buildscript {
     dependencies {
-        classpath("com.gradle.publish:plugin-publish-plugin:0.9.1")
-        classpath("nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0")
+        classpath("com.github.hierynomus:license-gradle-plugin:0.16.1")
         classpath("org.ow2.asm:asm:6.2.1")
         classpath("org.ow2.asm:asm-tree:6.2.1")
     }
@@ -27,7 +26,7 @@ group = "com.anatawa12.forge"
 version = "2.3-${property("version")!!}"
 
 base {
-    archivesBaseName = "ForgeGradle"
+    archivesName.set("ForgeGradle")
 }
 java {
     targetCompatibility = JavaVersion.VERSION_1_8
@@ -43,7 +42,6 @@ repositories {
         // because Srg2Source needs an eclipse dependency.
         name = "eclipse"
     }
-    jcenter() // get as many deps from here as possible
     mavenCentral()
 
     // because SS and its snapshot
@@ -84,28 +82,28 @@ configurations {
 }
 
 dependencies {
-    compile(gradleApi())
+    implementation(gradleApi())
 
     // moved to the beginning to be the overrider
-    //compile("org.ow2.asm:asm-debug-all:6.0")
-    compile("com.google.guava:guava:31.1-jre")
+    //implementation("org.ow2.asm:asm-debug-all:6.0")
+    implementation("com.google.guava:guava:31.1-jre")
 
-    compile("net.sf.opencsv:opencsv:2.3") // reading CSVs.. also used by SpecialSource
-    compile("com.cloudbees:diff4j:1.3") // for difing and patching
-    compile("com.github.abrarsyed.jastyle:jAstyle:1.3") // formatting
-    compile("net.sf.trove4j:trove4j:3.0.3") // because its awesome.
+    implementation("net.sf.opencsv:opencsv:2.3") // reading CSVs.. also used by SpecialSource
+    implementation("com.cloudbees:diff4j:1.3") // for difing and patching
+    implementation("com.github.abrarsyed.jastyle:jAstyle:1.3") // formatting
+    implementation("net.sf.trove4j:trove4j:3.0.3") // because its awesome.
 
-    compile("com.github.jponge:lzma-java:1.3") // replaces the LZMA binary
-    compile("com.nothome:javaxdelta:2.0.1") // GDIFF implementation for BinPatches
-    compile("com.google.code.gson:gson:2.9.0") // Used instead of Argo for buuilding changelog.
-    compile("com.github.tony19:named-regexp:0.2.6") // 1.7 Named regexp features
-    compile("net.minecraftforge:forgeflower:1.0.342-SNAPSHOT") // Fernflower Forge edition
+    implementation("com.github.jponge:lzma-java:1.3") // replaces the LZMA binary
+    implementation("com.nothome:javaxdelta:2.0.1") // GDIFF implementation for BinPatches
+    implementation("com.google.code.gson:gson:2.9.0") // Used instead of Argo for buuilding changelog.
+    implementation("com.github.tony19:named-regexp:0.2.6") // 1.7 Named regexp features
+    implementation("net.minecraftforge:forgeflower:1.0.342-SNAPSHOT") // Fernflower Forge edition
 
     shade("net.md-5:SpecialSource:1.11.0") // deobf and reobf
 
     // because curse
-    compile("org.apache.httpcomponents:httpclient:4.5.13")
-    compile("org.apache.httpcomponents:httpmime:4.5.13")
+    implementation("org.apache.httpcomponents:httpclient:4.5.13")
+    implementation("org.apache.httpcomponents:httpmime:4.5.13")
 
     // mcp stuff
     shade("de.oceanlabs.mcp:RetroGuard:3.6.6")
@@ -144,11 +142,11 @@ dependencies {
     }
 
     //compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:1.1.3-2")
-    testCompile("junit:junit:4.13.2")
+    testImplementation("junit:junit:4.13.2")
 }
 
 val wrapper by tasks.getting(Wrapper::class) {
-    gradleVersion = "6.3"
+    gradleVersion = "8.8"
     distributionType = Wrapper.DistributionType.ALL
 }
 
@@ -341,19 +339,14 @@ java {
     withSourcesJar()
 }
 
-artifacts {
-    archives(jar)
-    //archives javadocJar
-}
-
 val test by tasks.getting(Test::class) {
     if (project.hasProperty("filesmaven")) // disable this test when on the forge jenkins
         exclude("**/ExtensionMcpMappingTest*")
 }
 
-fun Project.license(configure: nl.javadude.gradle.plugins.license.LicenseExtension.() -> Unit): Unit =
+fun Project.license(configure: com.hierynomus.gradle.license.LicenseExtension.() -> Unit): Unit =
     (this as ExtensionAware).extensions.configure("license", configure)
-fun nl.javadude.gradle.plugins.license.LicenseExtension.ext(configure: ExtraPropertiesExtension.()->Unit): Unit =
+fun com.hierynomus.gradle.license.LicenseExtension.ext(configure: ExtraPropertiesExtension.()->Unit): Unit =
     (this as ExtensionAware).extensions.configure("ext", configure)
 
 license {
@@ -385,7 +378,7 @@ publishing {
             from(components["java"])
 
             pom {
-                name.set(project.base.archivesBaseName)
+                name.set(project.base.archivesName.get())
                 description.set("Gradle plugin for Forge")
                 url.set("https://github.com/anatawa12/ForgeGradle-2.3")
 
