@@ -36,6 +36,7 @@ import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.java.archives.Attributes;
+import org.gradle.api.plugins.BasePluginExtension;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.jvm.tasks.Jar;
 
@@ -80,7 +81,11 @@ public class LiteloaderPlugin extends UserVanillaBasePlugin<LiteloaderExtension>
         final DelayedFile versionJsonEtag = delayedFile(VERSION_JSON_FILE + ".etag");
         setJson(JsonFactory.loadLiteLoaderJson(getWithEtag(VERSION_JSON_URL, versionJson.call(), versionJsonEtag.call())));
 
-        String baseName = MODFILE_PREFIX + this.project.property("archivesBaseName").toString().toLowerCase();
+        String baseName = MODFILE_PREFIX + this.project.getExtensions()
+                .getByType(BasePluginExtension.class)
+                .getArchivesName()
+                .get()
+                .toLowerCase();
 
         TaskContainer tasks = this.project.getTasks();
         final Jar jar = (Jar)tasks.getByName("jar");

@@ -44,7 +44,6 @@ import net.minecraftforge.gradle.ArchiveTaskHelper;
 import net.minecraftforge.gradle.util.ReflectionUtil;
 import org.gradle.api.Action;
 import org.gradle.api.DefaultTask;
-import org.gradle.api.ExtensionAware;
 import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
@@ -66,6 +65,7 @@ import org.gradle.api.file.SourceDirectorySet;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.plugins.ExtensionAware;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.GroovySourceSet;
 import org.gradle.api.tasks.JavaExec;
@@ -1351,3 +1351,4 @@ public abstract class UserBasePlugin<T extends UserBaseExtension> extends BasePl
             f.mkdirs();
     }
 }
+import org.gradle.api.artifacts.Configuration;
